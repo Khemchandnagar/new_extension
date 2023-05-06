@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Face Login Extension</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <div id="popup-container">
+      <h1>Face Login Extension</h1>
+      <form>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username">
+        <br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password">
+        <br>
+        <button id="login-btn">Login</button>
+
+        <video id="video" width="320" height="240" autoplay></video>
+        <canvas id="canvas" width="320" height="240"></canvas>
+      </form>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
