@@ -1,11 +1,11 @@
-from flask import Flask, jsonify, render_template, request, Response
+from flask import Flask, jsonify, request, Response
 from imutils.video import VideoStream
 import cv2
 import base64
 import numpy as np
 from flask_cors import CORS
 import naya_wala_face_detection
-from flask_sqlalchemy import SQLAlchemy
+import database
 
 app = Flask(__name__)
 CORS(app)
@@ -27,6 +27,21 @@ def handle_post_request():
     data = naya_wala_face_detection.detect_face(img_id,frame)
     
     return jsonify(data=str(data[0]),name= (data[1]) )
+
+@app.route('/getWebsites', methods=['POST'])
+def getWebsites():
+    data = request.get_json()
+    userId = int(data['id'])
+    result = database.execute_sql_query("SELECT * FROM userWebId AS t1 JOIN websites AS t2 ON t1.webId = t2.webId WHERE t1.userId = {}; ".format(userId))
+    return result
+
+@app.route('/getCredentials', methods=['POST'])
+def getCredentials():
+    data = request.get_json()
+    userId = int(data['user_id'])
+    webId = int(data['web_id'])
+    result = database.execute_sql_query("SELECT * FROM websitecredentials WHERE userId = {} AND webId = {}; ".format(userId,webId))
+    return result
 
 if __name__ == '__main__':
     app.run()

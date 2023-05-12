@@ -1,32 +1,59 @@
 console.log("background script is running")
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete' && tab.url.includes('codechef.com/login')) {
-        take_snapshots(tabId, changeInfo, tab);
-    }
+const userId = 4014;
+
+let promise = new Promise(function (resolve, reject) {
+    fetch('http://localhost:5000/getWebsites', {
+        method: 'POST',
+        body: JSON.stringify({ id: String(userId) }),
+        headers: { 'Content-Type': 'application/json' }
+    }).then(response => response.json()).then(data => {
+        resolve(data)
+    }).catch(function (error) {
+        reject(error)
+    });
+})
+
+promise.then(data => {
+    data.forEach((website) => {
+        console.log(website)
+        chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+            if (changeInfo.status === 'complete' && tab.url.includes(website['name'])) {
+                take_snapshots(tabId, changeInfo, tab, website['webId']);
+            }
+        });
+    })
 });
 
 
-function login(tabId, changeInfo, tab) {
+function login(tabId, changeInfo, tab,data) {
 
-    console.log("script is running")
+    console.log("script is running in login")
     chrome.tabs.executeScript(tabId, {
         code: `
           console.log("scrit is running")
           const inputs = document.getElementsByTagName('input');
+          const buttons = document.getElementsByTagName('button');
 
-          const usernameInput = Array.from(inputs).filter((input) => input.type === 'text')[0]; // codeforces me 1 
+          let usernameInput = Array.from(inputs).filter((input) => input.type === 'email')[0];
           const passwordInput = Array.from(inputs).filter((input) => input.type === 'password')[0];
-          const submitButton = Array.from(inputs).filter((input) => input.type === 'submit')[0];
+          const submitButton1 = Array.from(inputs).filter((input) => input.type === 'submit')[0];
+          if(!usernameInput)
+            usernameInput = inputs[7];
+          const submitButton = buttons[0];
           console.log(usernameInput,passwordInput)
           console.log(submitButton)
               console.log("hello")
-              if (usernameInput && passwordInput && submitButton) {
-                usernameInput.value = 'khemchandnagar182@gmail.com';
-                passwordInput.value = 'Khem@123';
+              if (usernameInput && passwordInput &&(submitButton || submitButton1)) {
+                usernameInput.value = '${data['username']}';
+                passwordInput.value = '${data['password']}';
                 console.log(usernameInput,passwordInput)
                 console.log(submitButton)
-                setTimeout( () => { console.log("after"); submitButton.click(); },0)
+                if(submitButton1){
+                    setTimeout( () => { console.log("after"); submitButton1.click(); },0)
+                }
+                else
+                    setTimeout( () => { console.log("after"); submitButton.click(); },0)
               }
           `,
         runAt: 'document_idle'
@@ -34,7 +61,7 @@ function login(tabId, changeInfo, tab) {
 }
 
 
-function take_snapshots(tabId, changeInfo, tab) {
+function take_snapshots(tabId, changeInfo, tab,webId) {
     let stream_variable = null;
 
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -63,14 +90,20 @@ function take_snapshots(tabId, changeInfo, tab) {
                         img_id = parseInt(data.data)
                         console.log(img_id, data.data, data.name)
                         if (data.name != "unknown") {
-                            login(tabId, changeInfo, tab)
+                            console.log('face match')
+                            getCredentials(userId,webId).then( (data) => {
+                                console.log(data)
+                                login(tabId, changeInfo, tab,data[0])
+                            })
                             releaseCamera()
                             return
                         }
-                        if (img_id < 10)
+                        if (img_id < 5)
                             sendFrame();
-                        else
+                        else {
                             releaseCamera()
+                            alert("auto login failed! try manually or refresh the page")
+                        }
                     }).catch(function (error) {
                         console.log(error);
                     });
@@ -89,4 +122,18 @@ function take_snapshots(tabId, changeInfo, tab) {
             });
         }
     }
+}
+
+function getCredentials(userId, webId) {
+    return new Promise((resolve, reject) => {
+        fetch('http://localhost:5000/getCredentials', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: String(userId), web_id: String(webId), }),
+            headers: { 'Content-Type': 'application/json' }
+        }).then(response => response.json()).then(data => {
+            resolve(data)
+        }).catch(function (error) {
+            reject(error)
+        });
+    })
 }

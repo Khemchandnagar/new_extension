@@ -1,64 +1,45 @@
-from flask import Flask, jsonify, render_template, request, session, redirect
-from flask_mysqldb import MySQL
-from datetime import timedelta
+import mysql.connector
+import json
 
 
-app = Flask(__name__)
+def execute_sql_query(sql_query):
+    # Connect to the database
+    connection = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="khem",
+        database="face_extension"
+    )
 
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'khem'
-app.config['MYSQL_DB'] = 'face_extension'
+    try:
+        cursor = connection.cursor()
 
-mysql = MySQL(app)
+        cursor.execute(sql_query)
 
-class User:
-    def __init__(self, id, email,image):
-        self.id = id
-        self.email = email
-        self.image = image
+        # connection.commit()
 
-    def serialize(self):
-        return {
-            'id': self.id,
-            'email': self.email,
-            'image':self.image
-        }
+        results = cursor.fetchall()
+        column_names = cursor.column_names
 
+        rows = []
+        for row in results:
+            row_dict = dict(zip(column_names, row))
+            rows.append(row_dict)
 
+        # Convert the data to JSON
+        json_data = json.dumps(rows)
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data['email']
-    password = data['password']
-    print(data)
-    # Create a cursor to interact with the database
-    cur = mysql.connection.cursor()
+        return json_data
 
-    # Execute the login query
-    cur.execute("SELECT * FROM users WHERE email=%s AND password=%s", (email, password))
-    user = cur.fetchone()
+    except mysql.connector.Error as error:
+        print("Error executing SQL query:", error)
 
-    # Close the cursor
-    cur.close()
+    finally:
+        if cursor:
+            cursor.close()
+        if connection.is_connected():
+            connection.close()
 
-    # Check if the user exists in the database
-    print(type(user))
-
-    if user:
-        # Successful login
-        user = User(id=user[2], email=user[0], image=user[1])
-        print(user.serialize())
-        return jsonify({'message': 'Login successful', 'user': user.serialize()})
-    else:
-        # Failed login
-        return jsonify({'message': 'Login failed'})
-
-
-
-
-
-
-if __name__ == '__main__':
-    app.run()
+sql_query = "SELECT name FROM userWebId AS t1 JOIN websites AS t2 ON t1.webId = t2.webId WHERE t1.userId = 4014; "
+results = execute_sql_query(sql_query)
+print(results)

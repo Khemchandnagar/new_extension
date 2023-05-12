@@ -6,12 +6,7 @@
     "permissions": [
         "tabs",
         "activeTab",
-        "https://ui.nupins.in/login",
-        "https://www.website.com/webmail/sign-in/",
-        "https://admin.nupins.in/",
-        "https://www.instagram.com/accounts/login/",
-        "https://codeforces.com/enter",
-        "https://www.codechef.com/login"
+        "*://*/*"
     ],
 
     "background": {
